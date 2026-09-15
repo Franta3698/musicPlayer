@@ -10,4 +10,3 @@ folder = input("Vyberte si složku: ")
 
 mp3_que = [file for file in sorted(os.listdir((folder))) if file.endswith(".mp3")]
 
-print(mp3_que)
