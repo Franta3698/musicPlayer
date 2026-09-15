@@ -81,6 +81,7 @@ class MainUI(QMainWindow):
         self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
         pygame.mixer.music.play()
         self.timer_setup()
+        self.offset = 0
         self.paused = False
     
     def back(self):
@@ -89,6 +90,7 @@ class MainUI(QMainWindow):
         self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
         pygame.mixer.music.play()
         self.timer_setup()
+        self.offset = 0
         self.paused = False
     def song_clicked(self, item):
         self.playing = self.mp3_que.index(item.text())
@@ -102,13 +104,14 @@ class MainUI(QMainWindow):
         pygame.mixer.music.set_volume((self.volume / 100) ** 2)
 
     def update_time(self):
-        position = pygame.mixer.music.get_pos() / 1000
+        position = (pygame.mixer.music.get_pos() / 1000) + self.offset
         minutes = int(position // 60)
         seconds = int(position % 60)
         self.CurrentSongTime_label.setText(f"{minutes}:{seconds:02d}")
-        self.SongScrubber_slider.setValue(int(position))
+        self.SongScrubber_slider.setValue(int(position + self.offset))
     def change_time(self):
         position = pygame.mixer.music.get_pos() / 1000
+        self.offset = position
         pygame.mixer.music.set_pos(self.SongScrubber_slider.value())
 
 
