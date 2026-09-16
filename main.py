@@ -1,5 +1,4 @@
 import pygame
-import threading
 from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QListWidget
 from PyQt6.QtCore import QTimer
 from PyQt6.uic import loadUi
@@ -10,7 +9,6 @@ from mutagen.mp3 import MP3
 pygame.init()
 pygame.mixer.init()
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
-ROUNDINGERROR = 1
 
 
 SONG_END_EVENT = pygame.USEREVENT + 1
