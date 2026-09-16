@@ -53,6 +53,7 @@ class MainUI(QMainWindow):
         self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
         self.SongLength_label.setText(f"{int(self.audioLength // 60)}:{(int(self.audioLength % 60)):02d}")
         self.SongScrubber_slider.setMaximum(int(self.audioLength))
+
     def select_folder(self):
         self.playing = 0
         self.Songs_widget.clear()
@@ -103,6 +104,7 @@ class MainUI(QMainWindow):
         self.timer_setup()
         self.reset()
         self.paused = False
+
     def song_clicked(self, item):
         self.playing = self.mp3_que.index(item.text())
         self.timer_setup()
@@ -110,7 +112,7 @@ class MainUI(QMainWindow):
         pygame.mixer.music.play()
         self.reset()
         self.paused = False
-        pass
+        
     def changed_volume(self):
         self.volume = self.Volume_slider.value()
         pygame.mixer.music.set_volume((self.volume / 100) ** 2)
@@ -125,14 +127,10 @@ class MainUI(QMainWindow):
         if (self.position) >= self.audioLength:
             self.next()
 
-
     def change_time(self):
-
         self.offset = self.SongScrubber_slider.value()
-
         if (self.offset < self.timeElapsed):
             pygame.mixer.music.play(start=self.offset)
-            
         pygame.mixer.music.set_pos((self.offset))
 
 
