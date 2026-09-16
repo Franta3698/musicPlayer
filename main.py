@@ -7,7 +7,6 @@ import sys
 import os
 from mutagen import mp3
 from mutagen.mp3 import MP3
-import math
 pygame.init()
 pygame.mixer.init()
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
@@ -34,8 +33,6 @@ class MainUI(QMainWindow):
             self.offset = 0
             self.position = 0
             self.timeElapsed = 0
-            self.changed = False
-            self.whole = 0
 
             self.ChooseFolder_button.clicked.connect(self.select_folder)
             self.PauseUnpause_button.clicked.connect(self.pause_unpause)
@@ -50,7 +47,6 @@ class MainUI(QMainWindow):
     def reset(self):
         self.timeElapsed = 0
         self.offset = 0
-        self.whole = 0
 
     def timer_setup(self):
         self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
@@ -121,14 +117,11 @@ class MainUI(QMainWindow):
 
     def update_time(self):
         self.timeElapsed += 1
-        print(pygame.mixer.music.get_pos() / 1000)
         self.position = (pygame.mixer.music.get_pos() / 1000) + self.offset
         minutes = int(self.position // 60)
         seconds = int(self.position % 60)
         self.CurrentSongTime_label.setText(f"{minutes}:{seconds:02d}")
         self.SongScrubber_slider.setValue(int(self.position))
-        print(self.position)
-        print(self.whole)
         if (self.position) >= self.audioLength:
             self.next()
 
@@ -136,7 +129,6 @@ class MainUI(QMainWindow):
     def change_time(self):
 
         self.offset = self.SongScrubber_slider.value()
-        print(f"OFFFSET: {self.offset}")
 
         if (self.offset < self.timeElapsed):
             pygame.mixer.music.play(start=self.offset)
