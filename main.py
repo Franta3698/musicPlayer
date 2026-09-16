@@ -7,6 +7,7 @@ import sys
 import os
 from mutagen import mp3
 from mutagen.mp3 import MP3
+import math
 pygame.init()
 pygame.mixer.init()
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
@@ -56,7 +57,6 @@ class MainUI(QMainWindow):
         self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
         self.SongLength_label.setText(f"{int(self.audioLength // 60)}:{(int(self.audioLength % 60)):02d}")
         self.SongScrubber_slider.setMaximum(int(self.audioLength))
-
     def select_folder(self):
         self.playing = 0
         self.Songs_widget.clear()
@@ -82,9 +82,12 @@ class MainUI(QMainWindow):
     def pause_unpause(self):
         if self.paused:
             pygame.mixer.music.unpause()
+            self.timer.start(1000)
             self.paused = False
         else:
+
             pygame.mixer.music.pause()
+            self.timer.stop()
             self.paused = True
 
     def next(self):
@@ -119,22 +122,26 @@ class MainUI(QMainWindow):
     def update_time(self):
         self.timeElapsed += 1
         print(pygame.mixer.music.get_pos() / 1000)
-        self.position = (pygame.mixer.music.get_pos() / 1000) + self.whole
+        self.position = (pygame.mixer.music.get_pos() / 1000) + self.offset
         minutes = int(self.position // 60)
         seconds = int(self.position % 60)
         self.CurrentSongTime_label.setText(f"{minutes}:{seconds:02d}")
         self.SongScrubber_slider.setValue(int(self.position))
         print(self.position)
         print(self.whole)
-        if int(self.position) + ROUNDINGERROR == self.whole:
+        if (self.position) >= self.audioLength:
             self.next()
 
 
     def change_time(self):
 
         self.offset = self.SongScrubber_slider.value()
-        self.whole = self.offset - self.timeElapsed
-        pygame.mixer.music.set_pos(self.offset)
+        print(f"OFFFSET: {self.offset}")
+
+        if (self.offset < self.timeElapsed):
+            pygame.mixer.music.play(start=self.offset)
+            
+        pygame.mixer.music.set_pos((self.offset))
 
 
 if __name__ == "__main__":
