@@ -1,7 +1,0 @@
-import pygame
-class Player(pygame.sprite.Sprite):
-    def __init__(self, location):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./textures/hero.png")
-        self.rect = self.image.get_rect()
-        self.rect.left, self.rect.right = location
