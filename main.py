@@ -31,8 +31,9 @@ class MainUI(QMainWindow):
             self.timer = QTimer()
             self.audioLength = 1
             self.offset = 0
-            self.position = 0
             self.timeElapsed = 0
+            self.minutes = 0
+            self.seconds = 0
 
             self.ChooseFolder_button.clicked.connect(self.select_folder)
             self.PauseUnpause_button.clicked.connect(self.pause_unpause)
@@ -42,11 +43,17 @@ class MainUI(QMainWindow):
             self.Volume_slider.valueChanged.connect(self.changed_volume)
             self.SongScrubber_slider.sliderReleased.connect(self.change_time)
             self.timer.timeout.connect(self.update_time)
-            self.timer.start(1000)
+
+    def set_time_info(self):
+        self.minutes = int(self.timeElapsed // 60)
+        self.seconds = int(self.timeElapsed % 60)
+        self.CurrentSongTime_label.setText(f"{self.minutes}:{self.seconds:02d}")
+        self.SongScrubber_slider.setValue(self.timeElapsed)
 
     def reset(self):
         self.timeElapsed = 0
         self.offset = 0
+        self.timer.start(1000)
 
     def timer_setup(self):
         self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
@@ -82,7 +89,6 @@ class MainUI(QMainWindow):
             self.timer.start(1000)
             self.paused = False
         else:
-
             pygame.mixer.music.pause()
             self.timer.stop()
             self.paused = True
@@ -94,6 +100,7 @@ class MainUI(QMainWindow):
         pygame.mixer.music.play()
         self.timer_setup()
         self.reset()
+        self.set_time_info()
         self.paused = False
     
     def back(self):
@@ -103,6 +110,7 @@ class MainUI(QMainWindow):
         pygame.mixer.music.play()
         self.timer_setup()
         self.reset()
+        self.set_time_info()
         self.paused = False
 
     def song_clicked(self, item):
@@ -111,6 +119,7 @@ class MainUI(QMainWindow):
         pygame.mixer.music.load(self.folder + "/" + item.text())
         pygame.mixer.music.play()
         self.reset()
+        self.set_time_info()
         self.paused = False
         
     def changed_volume(self):
@@ -119,20 +128,20 @@ class MainUI(QMainWindow):
 
     def update_time(self):
         self.timeElapsed += 1
-        self.position = (pygame.mixer.music.get_pos() / 1000) + self.offset
-        minutes = int(self.position // 60)
-        seconds = int(self.position % 60)
-        self.CurrentSongTime_label.setText(f"{minutes}:{seconds:02d}")
-        self.SongScrubber_slider.setValue(int(self.position))
-        if (self.position) >= self.audioLength:
+        self.set_time_info()
+        if self.audioLength - self.timeElapsed < 1:
             self.next()
 
     def change_time(self):
-        self.offset = self.SongScrubber_slider.value()
-        if (self.offset < self.timeElapsed):
-            pygame.mixer.music.play(start=self.offset)
-        pygame.mixer.music.set_pos((self.offset))
+        self.timeElapsed = self.SongScrubber_slider.value()
+        self.set_time_info()
+        if self.paused:
+            pygame.mixer.music.play(start=self.SongScrubber_slider.value())
+            pygame.mixer.music.pause()
+            return
 
+        pygame.mixer.music.play(start=self.SongScrubber_slider.value())
+        
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
