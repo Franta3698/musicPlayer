@@ -4,8 +4,8 @@ from PyQt6.QtCore import QTimer
 from PyQt6.uic import loadUi
 import sys
 import os
-from mutagen import mp3
 from mutagen.mp3 import MP3
+from mutagen.wave import WAVE
 pygame.init()
 pygame.mixer.init()
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
@@ -22,7 +22,7 @@ class MainUI(QMainWindow):
 
             self.folder = ""
             self.mp3_que = []
-            self.paused = False
+            self.paused = True
             self.playing = 0
             self.que_lenght = 0
             self.volume = 1
@@ -32,6 +32,9 @@ class MainUI(QMainWindow):
             self.timeElapsed = 0
             self.minutes = 0
             self.seconds = 0
+            self.slider_is_pressed = False
+
+            self.Volume_slider.setValue(100)
 
             self.ChooseFolder_button.clicked.connect(self.select_folder)
             self.PauseUnpause_button.clicked.connect(self.pause_unpause)
@@ -41,10 +44,25 @@ class MainUI(QMainWindow):
             self.Volume_slider.valueChanged.connect(self.changed_volume)
             self.SongScrubber_slider.sliderReleased.connect(self.change_time)
             self.timer.timeout.connect(self.update_time)
+            self.SongScrubber_slider.sliderPressed.connect(self.slider_pressed)
+            self.SongScrubber_slider.sliderReleased.connect(self.slider_released)
+            self.SongScrubber_slider.sliderMoved.connect(self.slider_moved)
+
+    def slider_moved(self, value):
+        self.CurrentSongTime_label.setText(f"{value //60 }:{(value % 60) :02d}")
+    def slider_pressed(self):
+        self.slider_is_pressed = True
+    def slider_released(self):
+        self.slider_is_pressed = False
+        
+
 
     def set_time_info(self):
+
         self.minutes = int(self.timeElapsed // 60)
         self.seconds = int(self.timeElapsed % 60)
+        if self.slider_is_pressed:
+            return
         self.CurrentSongTime_label.setText(f"{self.minutes}:{self.seconds:02d}")
         self.SongScrubber_slider.setValue(self.timeElapsed)
 
@@ -55,6 +73,8 @@ class MainUI(QMainWindow):
 
     def timer_setup(self):
         self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
+        if (self.mp3_que[self.playing % self.que_lenght]).endswith(".wav"):
+            self.audioLength = WAVE(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
         self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
         self.SongLength_label.setText(f"{int(self.audioLength // 60)}:{(int(self.audioLength % 60)):02d}")
         self.SongScrubber_slider.setMaximum(int(self.audioLength))
@@ -67,7 +87,11 @@ class MainUI(QMainWindow):
         if not os.path.isdir(self.folder):
             return
         self.CurrentFolder_label.setText("Vybraná složka: " + ((self.folder.split("/"))[-1]))
-        self.mp3_que = sorted([file for file in os.listdir(self.folder) if file.endswith(".mp3")],key=lambda file: file[:2])
+        self.mp3_que = sorted(
+            [file for file in os.listdir(self.folder)
+            if file.lower().endswith((".mp3", ".wav"))],
+            key=lambda file: file[:2]
+        )
         self.que_lenght = len(self.mp3_que)
 
         for song in self.mp3_que:
@@ -77,9 +101,14 @@ class MainUI(QMainWindow):
         self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
         pygame.mixer.music.play()
         pygame.mixer.music.pause()
-        self.timer_setup()
-        self.reset()
         self.paused = True
+        self.timer.stop()
+        self.timer_setup()
+        self.SongScrubber_slider.setValue(0)
+        self.CurrentSongTime_label.setText(f"00:00")
+        self.timeElapsed = 0
+        self.offset = 0
+
 
     def pause_unpause(self):
         if self.paused:
@@ -137,7 +166,6 @@ class MainUI(QMainWindow):
             pygame.mixer.music.play(start=self.SongScrubber_slider.value())
             pygame.mixer.music.pause()
             return
-
         pygame.mixer.music.play(start=self.SongScrubber_slider.value())
         
 
