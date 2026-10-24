@@ -1,18 +1,16 @@
 import pygame
 from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QListWidget
 from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QIcon
 from PyQt6.uic import loadUi
 import sys
 import os
+import random
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
 pygame.init()
 pygame.mixer.init()
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
-
-
-SONG_END_EVENT = pygame.USEREVENT + 1
-pygame.mixer.music.set_endevent(SONG_END_EVENT)
 
 class MainUI(QMainWindow):
     def __init__(self):
@@ -33,8 +31,23 @@ class MainUI(QMainWindow):
             self.minutes = 0
             self.seconds = 0
             self.slider_is_pressed = False
+            self.looping = False
+            self.random = False
+            self.randomQue = []
 
             self.Volume_slider.setValue(100)
+
+            self.PauseUnpause_button.setFixedSize(48, 48)
+            self.PauseUnpause_button.setIcon(QIcon("icons/PlayIcon.svg"))
+            self.PauseUnpause_button.setIconSize( self.PauseUnpause_button.size())
+
+            self.PauseUnpause_button.setStyleSheet("""
+                QPushButton {
+                    border: none;
+                    padding: 0px;
+                    background: transparent;
+                }
+            """)
 
             self.ChooseFolder_button.clicked.connect(self.select_folder)
             self.PauseUnpause_button.clicked.connect(self.pause_unpause)
@@ -47,15 +60,35 @@ class MainUI(QMainWindow):
             self.SongScrubber_slider.sliderPressed.connect(self.slider_pressed)
             self.SongScrubber_slider.sliderReleased.connect(self.slider_released)
             self.SongScrubber_slider.sliderMoved.connect(self.slider_moved)
+            self.Loop_button.clicked.connect(self.loop)
+            self.Random_button.clicked.connect(self.set_random_que)
 
+    def set_random_que(self):
+        if self.random:
+            self.random = False
+        else:
+            self.random = True
+            self.random_list = random.sample(self.mp3_que, self.que_lenght)
+
+    def loop(self):
+        if self.looping:
+            self.looping = False
+        else:
+            self.looping = True
+
+
+    def change_pause_button(self):
+        if self.paused:
+            self.PauseUnpause_button.setIcon(QIcon("icons/PlayIcon.svg"))
+        else:
+            self.PauseUnpause_button.setIcon(QIcon("icons/PauseIcon.svg"))
+        self.PauseUnpause_button.setIconSize(self.PauseUnpause_button.size())
     def slider_moved(self, value):
-        self.CurrentSongTime_label.setText(f"{value //60 }:{(value % 60) :02d}")
+        self.CurrentSongTime_label.setText(f"{value //60 }:{(value % 60):02d}")
     def slider_pressed(self):
         self.slider_is_pressed = True
     def slider_released(self):
         self.slider_is_pressed = False
-        
-
 
     def set_time_info(self):
 
@@ -111,6 +144,8 @@ class MainUI(QMainWindow):
 
 
     def pause_unpause(self):
+        if not os.path.isdir(self.folder):
+            return
         if self.paused:
             pygame.mixer.music.unpause()
             self.timer.start(1000)
@@ -119,9 +154,11 @@ class MainUI(QMainWindow):
             pygame.mixer.music.pause()
             self.timer.stop()
             self.paused = True
+        self.change_pause_button()
 
     def next(self):
-        self.playing += 1
+        if self.looping is False:
+            self.playing += 1
         pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght])
         self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
         pygame.mixer.music.play()
@@ -129,6 +166,7 @@ class MainUI(QMainWindow):
         self.reset()
         self.set_time_info()
         self.paused = False
+        self.change_pause_button()
     
     def back(self):
         self.playing -= 1
@@ -139,6 +177,7 @@ class MainUI(QMainWindow):
         self.reset()
         self.set_time_info()
         self.paused = False
+        self.change_pause_button()
 
     def song_clicked(self, item):
         self.playing = self.mp3_que.index(item.text())
@@ -148,6 +187,7 @@ class MainUI(QMainWindow):
         self.reset()
         self.set_time_info()
         self.paused = False
+        self.change_pause_button()
         
     def changed_volume(self):
         self.volume = self.Volume_slider.value()
