@@ -33,7 +33,8 @@ class MainUI(QMainWindow):
             self.slider_is_pressed = False
             self.looping = False
             self.random = False
-            self.randomQue = []
+            self.randomQue = {}
+            self.seed = 0
 
             self.Volume_slider.setValue(100)
 
@@ -66,9 +67,16 @@ class MainUI(QMainWindow):
     def set_random_que(self):
         if self.random:
             self.random = False
+            self.randomQue.clear()
         else:
             self.random = True
-            self.random_list = random.sample(self.mp3_que, self.que_lenght)
+            for i, song in enumerate(self.mp3_que):
+                cislo = random.randint(0, (len(self.mp3_que)-1))
+                while cislo in self.randomQue.keys():
+                    cislo = (cislo + 1) % len(self.mp3_que)
+                self.randomQue[cislo] = song
+
+
 
     def loop(self):
         if self.looping:
@@ -105,12 +113,49 @@ class MainUI(QMainWindow):
         self.timer.start(1000)
 
     def timer_setup(self):
-        self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
-        if (self.mp3_que[self.playing % self.que_lenght]).endswith(".wav"):
-            self.audioLength = WAVE(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
-        self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
+        if self.looping is False:
+
+            if self.random:
+                self.CurrentMusic_label.setText(self.randomQue[self.playing % self.que_lenght])
+                if (self.randomQue[self.playing % self.que_lenght]).endswith(".wav"):
+                    self.audioLength = WAVE(self.folder + "/" + self.randomQue[self.playing % self.que_lenght]).info.length
+                self.audioLength = MP3(self.folder + "/" + self.randomQue[self.playing % self.que_lenght]).info.length
+            else:
+                self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
+                if (self.mp3_que[self.playing % self.que_lenght]).endswith(".wav"):
+                    self.audioLength = WAVE(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
+                self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
+        
+        
         self.SongLength_label.setText(f"{int(self.audioLength // 60)}:{(int(self.audioLength % 60)):02d}")
         self.SongScrubber_slider.setMaximum(int(self.audioLength))
+
+
+    def changeSong(self):
+        if self.random:
+             if self.looping:
+                pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.Songs_widget.currentRow()])
+             else:
+                pygame.mixer.music.load(self.folder + "/" + self.randomQue[self.playing % self.que_lenght])     
+                for i, song in enumerate(self.mp3_que):
+                    if song == self.randomQue[self.playing % self.que_lenght]:
+                        index = i
+                self.Songs_widget.setCurrentRow(index)
+
+                        
+        else:
+            if self.looping:
+                pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.Songs_widget.currentRow()]) 
+            else:
+                pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght])     
+                self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
+
+        pygame.mixer.music.play()
+        self.timer_setup()
+        self.reset()
+        self.set_time_info()
+        self.paused = False
+        self.change_pause_button()
 
     def select_folder(self):
         self.playing = 0
@@ -126,6 +171,9 @@ class MainUI(QMainWindow):
             key=lambda file: file[:2]
         )
         self.que_lenght = len(self.mp3_que)
+
+        if self.que_lenght < 1:
+            return
 
         for song in self.mp3_que:
             self.Songs_widget.addItem(song)
@@ -159,29 +207,24 @@ class MainUI(QMainWindow):
     def next(self):
         if self.looping is False:
             self.playing += 1
-        pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght])
-        self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
-        pygame.mixer.music.play()
-        self.timer_setup()
-        self.reset()
-        self.set_time_info()
-        self.paused = False
-        self.change_pause_button()
+        self.changeSong()
+
+
     
     def back(self):
+        
         self.playing -= 1
-        pygame.mixer.music.load(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght])
-        self.Songs_widget.setCurrentRow(self.playing % self.que_lenght)
-        pygame.mixer.music.play()
-        self.timer_setup()
-        self.reset()
-        self.set_time_info()
-        self.paused = False
-        self.change_pause_button()
+        self.changeSong()
+       
 
     def song_clicked(self, item):
         self.playing = self.mp3_que.index(item.text())
-        self.timer_setup()
+        self.CurrentMusic_label.setText(self.mp3_que[self.playing % self.que_lenght])
+        if (self.mp3_que[self.playing % self.que_lenght]).endswith(".wav"):
+            self.audioLength = WAVE(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
+        self.audioLength = MP3(self.folder + "/" + self.mp3_que[self.playing % self.que_lenght]).info.length
+        self.SongLength_label.setText(f"{int(self.audioLength // 60)}:{(int(self.audioLength % 60)):02d}")
+        self.SongScrubber_slider.setMaximum(int(self.audioLength))        
         pygame.mixer.music.load(self.folder + "/" + item.text())
         pygame.mixer.music.play()
         self.reset()
